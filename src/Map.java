@@ -8,101 +8,199 @@ import java.io.Serializable;
  */
 public class Map implements Map2D, Serializable{
 
-    // edit this class below
+    ////////////////////// Constructors ///////////////////////
 	/**
 	 * Constructs a w*h 2D raster map with an init value v.
 	 * @param w
 	 * @param h
 	 * @param v
 	 */
-	public Map(int w, int h, int v) {init(w, h, v);}
-	/**
-	 * Constructs a square map (size*size).
-	 * @param size
-	 */
-	public Map(int size) {this(size,size, 0);}
+    private int w;
+    private int h;
+    private int v[][]; // 2D array to hold the map values meaning w x h
+	public Map(int w, int h, int v)
+    {
+        init(w, h, v);
+    }
+    /**
+     * Constructs a square map (size*size).
+     * @param size
+     */
+	public Map(int size) // square map
+    {
+        if(size<=0)
+        {
+            throw new IllegalArgumentException("size must be positive");
+        }
+        this(size,size, 0); // default init value is 0 when the size is the same for width and height
+    }
 	
 	/**
 	 * Constructs a map from a given 2D array.
 	 * @param data
 	 */
-	public Map(int[][] data) {
+	public Map(int[][] data)
+    {
 		init(data);
 	}
 	@Override
-	public void init(int w, int h, int v) {
+	public void init(int w, int h, int v) { //set width, height, value and fill in values with v
+        this.w = w;
+        this.h = h;
+        this.v = new int[h][w];
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                this.v[i][j] = v;
+            }
+        }
 
 	}
 	@Override
 	public void init(int[][] arr) {
+        if(arr==null || arr.length==0)
+        {
+            throw new IllegalArgumentException("arr can't be null or empty");
+        }
+        int rowLength = arr[0].length;
+        for (int i = 1; i < arr.length; i++) {
+            if(arr[i].length != rowLength)
+            {
+                throw new IllegalArgumentException("arr must be a non-ragged 2D array");
+            }
+        }
+        this.w = arr.length; // get width
+        this.h = arr[0].length; // get height from first row
+        this.v = new int[h][w]; // make new 2D array
+        for (int i = 0; i < h; i++) {
+            for (int j = 0; j < w; j++) {
+                this.v[i][j] = arr[i][j]; //fill in values with deep copy
+            }
+        }
 
 	}
-	@Override
-	public int[][] getMap() {
-		int[][] ans = null;
 
+    @Override
+	public int[][] getMap() { // return a deep copy of the 2D array
+		int[][] ans = new int[height][width];
+        for (int i = 0; i < this.h; i++) {
+            for (int j = 0; j < this.w; j++) {
+                ans[i][j]=this.v[i][j] ;
+            }
+        }
 		return ans;
 	}
 	@Override
-	public int getWidth() {
-        int ans = -1;
-
-        return ans;
+	public int getWidth()
+    {
+        return this.w;
     }
 	@Override
-	public int getHeight() {
-        int ans = -1;
-
-        return ans;
+	public int getHeight()
+    {
+        return this.h;
     }
 	@Override
 	public int getPixel(int x, int y) {
-        int ans = -1;
-
-        return ans;
+        checkBounds(x, y);
+        return v[y][x];
     }
 	@Override
 	public int getPixel(Pixel2D p) {
-        int ans = -1;
-
-        return ans;
+        return getPixel(p.getX(), p.getY());
 	}
 	@Override
 	public void setPixel(int x, int y, int v) {
+        checkBounds(x, y);
+        this.v[y][x] = v;
 
     }
 	@Override
 	public void setPixel(Pixel2D p, int v) {
+        setPixel(p.getX(), p.getY(), v);
 
 	}
 
     @Override
     public boolean isInside(Pixel2D p) {
-        boolean ans = true;
-
-        return ans;
+        int x= p.getX();
+        int y= p.getY();
+        return inBounds(x, y);
     }
 
     @Override
     public boolean sameDimensions(Map2D p) {
-        boolean ans = false;
-
-        return ans;
+        return (p!=null && this.getWidth() == p.getWidth() && this.getHeight() == p.getHeight());
     }
 
     @Override
     public void addMap2D(Map2D p) {
+        if(!sameDimensions(p))
+        {
+            throw new IllegalArgumentException("Maps must have the same dimensions to add");
+        }
+        for (int i = 0; i < this.h; i++)
+        {
+            for (int j = 0; j < this.w; j++)
+            {
+                this.v[i][j] += p.getPixel(j, i); // add corresponding pixels
+            }
+        }
 
     }
 
     @Override
     public void mul(double scalar) {
+        for (int i = 0; i < this.h; i++)
+        {
+            for (int j = 0; j < this.w; j++)
+            {
+                this.v[i][j] = (int) (this.v[i][j] * scalar); // multiply each pixel by scalar and cast to int
+            }
 
+        }
     }
 
     @Override
     public void rescale(double sx, double sy) {
+        //Validation: Ensure scale factors are positive to avoid math/memory errors.
+        if (sx <= 0 || sy <= 0) throw new IllegalArgumentException("scale factors must be > 0");
 
+        /* *Calculate New Dimensions:
+         * - Math.round: Converts the floating-point result to the nearest integer.
+         * - Math.max(1, ...): Guarantees the map is at least 1 pixel wide/high (prevents size 0).
+         * - (int): Casts the final result from long to int for array indexing.
+         */
+        int newW = Math.max(1, (int) Math.round(width * sx));
+        int newH = Math.max(1, (int) Math.round(height * sy));
+
+        // 3. Array Allocation: Create a new 2D array for the resized map data.
+        int[][] out = new int[newH][newW];
+
+        /* * Resampling Loop:
+         * We iterate over every cell in the NEW map and determine which
+         * original cell from the OLD map it should "borrow" its value from.
+         */
+        for (int ny = 0; ny < newH; ny++) {
+            for (int nx = 0; nx < newW; nx++) {
+
+                /* * Mapping Inverse Coordinates:
+                 * - nx / sx: Finds the corresponding X position in the original map.
+                 * - Math.round: Picks the closest original pixel (Nearest Neighbor).
+                 * - Math.min(width - 1, ...): Bounds-check to ensure we don't exceed
+                 * the original array's last index due to rounding.
+                 */
+                int ox = Math.min(width - 1, (int) Math.round(nx / sx));
+                int oy = Math.min(height - 1, (int) Math.round(ny / sy));
+
+                //Assignment: Copy the value from the old map to the new map.
+                out[ny][nx] = cells[oy][ox];
+            }
+        }
+
+        //Update Object State: Replace the old map and dimensions with the new ones.
+        this.width = newW;
+        this.height = newH;
+        this.cells = out;
     }
 
     @Override
@@ -154,5 +252,13 @@ public class Map implements Map2D, Serializable{
         return ans;
     }
 	////////////////////// Private Methods ///////////////////////
+    private boolean inBounds(int x, int y) {
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
+    private void checkBounds(int x, int y) {
+        if (!inBounds(x, y)) {
+            throw new IndexOutOfBoundsException("Out of bounds: (" + x + "," + y + ") for " + width + "x" + height);
+        }
+    }
 
 }
