@@ -205,7 +205,54 @@ public class Map implements Map2D, Serializable{
 
     @Override
     public void drawCircle(Pixel2D center, double rad, int color) {
+        // Extract center coordinates and round the radius to the nearest integer
+        int cx = center.getX();
+        int cy = center.getY();
+        int r = (int) Math.round(rad);
+        // Validate radius: A circle cannot have a negative radius
+        if (r < 0) {
+            throw new IllegalArgumentException("Radius must be >= 0");
+        }
+        // Special case: If radius is 0, just draw a single point at the center
+        if (r == 0) {
+            setPixel(cx, cy, color);
+        }
+        // Draw circle using Midpoint Circle Algorithm (Bresenham's)
+        if (r > 0) {
+            int y = 0; // Start at the top of the circle
+            int x = r; // Initial X is the radius
+            int err = 1 - x; // Initial decision parameter (error offset)
 
+            // The loop continues until the 1/8th arc (octant) is complete
+            while (x >= y) {
+                /* * Apply 8-way symmetry:
+                 * A circle is symmetric across 8 octants. By calculating one point (x, y),
+                 * we can determine 7 other mirrored points instantly.
+                 */
+                setPixel(cx + x, cy + y, color);
+                setPixel(cx + y, cy + x, color);
+                setPixel(cx - y, cy + x, color);
+                setPixel(cx - y, cy - x, color);
+                setPixel(cx - x, cy + y, color);
+                setPixel(cx - x, cy - y, color);
+                setPixel(cx + y, cy - x, color);
+                setPixel(cx + x, cy - y, color);
+
+                y++; // Always move one step in the Y direction
+
+                /* * Error Correction:
+                 * Decide whether to stay at the current X or move inward to stay on the arc.
+                 */
+                if (err < 0) {
+                    // If error is negative, the next pixel is inside the ideal circle boundary
+                    err += ((2 * y) + 1);
+                } else {
+                    // If error is positive, we are too far out; move X one step inward
+                    x--;
+                    err += ((2 * (y - x)) + 1);
+                }
+            }
+        }
     }
 
     @Override
