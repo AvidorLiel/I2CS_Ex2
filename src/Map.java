@@ -81,7 +81,7 @@ public class Map implements Map2D, Serializable{
 
     @Override
 	public int[][] getMap() { // return a deep copy of the 2D array
-		int[][] ans = new int[height][width];
+		int[][] ans = new int[h][w];
         for (int i = 0; i < this.h; i++) {
             for (int j = 0; j < this.w; j++) {
                 ans[i][j]=this.v[i][j] ;
@@ -170,8 +170,8 @@ public class Map implements Map2D, Serializable{
          * - Math.max(1, ...): Guarantees the map is at least 1 pixel wide/high (prevents size 0).
          * - (int): Casts the final result from long to int for array indexing.
          */
-        int newW = Math.max(1, (int) Math.round(width * sx));
-        int newH = Math.max(1, (int) Math.round(height * sy));
+        int newW = Math.max(1, (int) Math.round(w * sx));
+        int newH = Math.max(1, (int) Math.round(h * sy));
 
         // 3. Array Allocation: Create a new 2D array for the resized map data.
         int[][] out = new int[newH][newW];
@@ -189,18 +189,18 @@ public class Map implements Map2D, Serializable{
                  * - Math.min(width - 1, ...): Bounds-check to ensure we don't exceed
                  * the original array's last index due to rounding.
                  */
-                int ox = Math.min(width - 1, (int) Math.round(nx / sx));
-                int oy = Math.min(height - 1, (int) Math.round(ny / sy));
+                int ox = Math.min(w - 1, (int) Math.round(nx / sx));
+                int oy = Math.min(h - 1, (int) Math.round(ny / sy));
 
                 //Assignment: Copy the value from the old map to the new map.
-                out[ny][nx] = cells[oy][ox];
+                out[ny][nx] = v[oy][ox];
             }
         }
 
         //Update Object State: Replace the old map and dimensions with the new ones.
-        this.width = newW;
-        this.height = newH;
-        this.cells = out;
+        this.w = newW;
+        this.h = newH;
+        this.v = out;
     }
 
     @Override
@@ -300,11 +300,11 @@ public class Map implements Map2D, Serializable{
     }
 	////////////////////// Private Methods ///////////////////////
     private boolean inBounds(int x, int y) {
-        return x >= 0 && x < width && y >= 0 && y < height;
+        return x >= 0 && x < w && y >= 0 && y < h;
     }
     private void checkBounds(int x, int y) {
         if (!inBounds(x, y)) {
-            throw new IndexOutOfBoundsException("Out of bounds: (" + x + "," + y + ") for " + width + "x" + height);
+            throw new IndexOutOfBoundsException("Out of bounds: (" + x + "," + y + ") for " + w + "x" + h);
         }
     }
 
