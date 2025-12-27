@@ -17,7 +17,8 @@ public class Index2D implements Pixel2D
         ;
     }
     @Override
-    public int getX() {
+    public int getX()
+    {
         return this.X;
     }
 
@@ -37,24 +38,30 @@ public class Index2D implements Pixel2D
         double dx= this.X- p2.getX();
         double dy = this.Y- p2.getY();
 
-        return Math.sqrt(dx*dx + dy*dy);
+        return (Math.sqrt(dx*dx + dy*dy));
     }
 
     @Override
-    public String toString() { /// m
-        String ans = null;
+    public String toString() {
 
         return "(" + this.X + "," + this.Y + ")";
     }
 
     @Override
     public boolean equals(Object p) {
+
         if (p == null)
         {
-            throw new IllegalArgumentException("p2 can't be null");
+
+            return false;
         }
+        if(!(p instanceof Pixel2D))
+        {
+            return false;
+        }
+        Pixel2D p1 = (Pixel2D)p;
         boolean ans = false;
-        if(this.X==p.getX() && this.Y==p.getY())
+        if(this.X==p1.getX() && this.Y==p1.getY())
         {
             ans=true;
         }
