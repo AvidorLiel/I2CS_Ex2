@@ -229,7 +229,8 @@ public class Map implements Map2D, Serializable{
             int err = 1 - x; // Initial decision parameter (error offset)
 
             // The loop continues until the 1/8th arc (octant) is complete
-            while (x >= y) {
+            while (x >= y)
+            {
                 /* * Apply 8-way symmetry:
                  * A circle is symmetric across 8 octants. By calculating one point (x, y),
                  * we can determine 7 other mirrored points instantly.
@@ -248,10 +249,13 @@ public class Map implements Map2D, Serializable{
                 /* * Error Correction:
                  * Decide whether to stay at the current X or move inward to stay on the arc.
                  */
-                if (err < 0) {
+                if (err < 0)
+                {
                     // If error is negative, the next pixel is inside the ideal circle boundary
                     err += ((2 * y) + 1);
-                } else {
+                }
+                else
+                {
                     // If error is positive, we are too far out; move X one step inward
                     x--;
                     err += ((2 * (y - x)) + 1);
@@ -260,14 +264,59 @@ public class Map implements Map2D, Serializable{
         }
     }
 
+    // 1. Calculate absolute differences and step directions
+    // 2. Initialize error term (err = dx + dy) to manage the decision between X and Y steps
+    // 3. Loop until the current coordinates (x0, y0) match the target (x1, y1)
+    // 4. In each step:
+    //    - If 2*err >= dy, move in the X direction
+    //    - If 2*err <= dx, move in the Y direction
+    //    - This ensures the line stays as close as possible to the ideal mathematical path.
     @Override
     public void drawLine(Pixel2D p1, Pixel2D p2, int color) {
-
+        int x1 = p1.getX(), y1 = p1.getY();
+        int x2 = p2.getX(), y2 = p2.getY();
+        int dx = Math.abs(x2 - x1);
+        int sx = x1 < x2 ? 1 : -1; // if x1<x2 then sx=1 else sx=-1
+        int dy = -Math.abs(y2 - y1);
+        int sy = y1 < y2 ? 1 : -1; // if y1<y2 then sy=1 else sy=-1
+        int err = dx + dy;
+        while (true)
+        {
+            setPixel(x1, y1, color);
+            if (x1 == x2 && y1 == y2) // Reached the end point
+                break;
+            int e2 = 2 * err;
+            if (e2 >= dy)
+            {
+                err += dy;
+                x1 += sx;
+            }
+            if (e2 <= dx)
+            {
+                err += dx;
+                y1 += sy;
+            }
+        }
     }
 
     @Override
     public void drawRect(Pixel2D p1, Pixel2D p2, int color) {
-
+        if (p1 == p2) { // If both points are the same, draw a single pixel
+            setPixel(p1.getX(), p1.getY(), color);
+        } else {
+            int x1 = Math.min(p1.getX(), p2.getX()); // Left x boundary of both points
+            int y1 = Math.min(p1.getY(), p2.getY()); // Top y boundary of both points
+            int x2 = Math.max(p1.getX(), p2.getX()); // Right x boundary of both points
+            int y2 = Math.max(p1.getY(), p2.getY()); // Bottom y boundary of both points
+            for (int x = x1; x <= x2; x++) { // Draw top and bottom edges
+                setPixel(x, y1, color);
+                setPixel(x, y2, color);
+            }
+            for (int y = y1; y <= y2; y++) { // Draw left and right edges
+                setPixel(x1, y, color);
+                setPixel(x2, y, color);
+            }
+        }
     }
 
     @Override
@@ -276,16 +325,89 @@ public class Map implements Map2D, Serializable{
 
         return ans;
     }
-	@Override
-	/** 
-	 * Fills this map with the new color (new_v) starting from p.
-	 * https://en.wikipedia.org/wiki/Flood_fill
-	 */
-	public int fill(Pixel2D xy, int new_v,  boolean cyclic) {
-		int ans = -1;
+    @Override
+    /**
+     * Fills this map with the new color (new_v) starting from p.
+     * Uses BFS (Breadth-First Search) algorithm with a Queue to avoid StackOverflow.
+     */
+        public int fill(Pixel2D xy, int new_v, boolean cyclic) {
+            int ans = 0;
+            // Initialize dimensions and starting coordinates
+            final int H = v.length;
+            final int W = v[0].length;
+            final int fx = xy.getX(); // starting x coordinate
+            final int fy = xy.getY(); // starting y coordinate
 
-		return ans;
-	}
+            // Initial boundary check: Ensure the starting point is within the map
+            if (fy < 0 || fy >= v[0].length || fx < 0 || fx >= v.length)
+            {
+                return ans;
+            }
+
+            // Identify the target color to be replaced
+            final int old = v[fy][fx];
+
+            // Optimization: If the target color is already the new color, no work is needed
+            if (old == new_v)
+            {
+                return ans;
+            }
+
+            // Setup BFS structures: 'visited' array prevents infinite loops
+            // 'q' (Queue) stores pixels that are waiting to have their neighbors checked
+            final boolean[][] visited = new boolean[H][W];
+            final ArrayDeque<int[]> q = new ArrayDeque<>();
+
+            // Start the process from the initial pixel
+            visited[fy][fx] = true;
+            q.add(new int[]{fx, fy});
+
+            // Define 4-way connectivity (Right, Left, Down, Up)
+            final int[][] directions = {{ 1,  0}, {-1,  0}, { 0,  1}, { 0, -1}};
+
+            // Main BFS Loop: Continue as long as there are connected pixels to process
+            while (!q.isEmpty()) {
+                int[] cur = q.removeFirst(); // Get the next pixel from the queue
+                int x = cur[0];
+                int y = cur[1];
+
+                // Update current pixel color and increment the counter
+                if (v[y][x] == old) {
+                    v[y][x] = new_v;
+                    ans++;
+                }
+
+                // Check all 4 neighbors
+                for (int[] d : directions)
+                {
+                    int nx = x + d[0];
+                    int ny = y + d[1];
+
+                    // Handle Map Topology: Cyclic vs. Standard Bounded
+                    if (cyclic)
+                    {
+                        // Modulo math ensures that going off-edge wraps around to the opposite side
+                        // Added '+ W' handles negative results from nx % W
+                        nx = ((nx % W) + W) % W;
+                        ny = ((ny % H) + H) % H;
+                    } else
+                    {
+                        // Standard bounds check: Skip the neighbor if it's outside the map
+                        if (nx < 0 || nx >= W || ny < 0 || ny >= H)
+                            continue;
+                    }
+
+                    // If neighbor has the original color and hasn't been visited yet, add to queue
+                    if (!visited[ny][nx] && v[ny][nx] == old)
+                    {
+                        visited[ny][nx] = true; // Mark as visited immediately to avoid duplicate entries
+                        q.add(new int[]{nx, ny});
+                    }
+                }
+            }
+            // Return total number of pixels that were changed
+            return ans;
+        }
 
 	@Override
 	/**
@@ -312,5 +434,5 @@ public class Map implements Map2D, Serializable{
             throw new IndexOutOfBoundsException("Out of bounds: (" + x + "," + y + ") for " + w + "x" + h);
         }
     }
-    //
+
 }
