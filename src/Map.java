@@ -1,4 +1,9 @@
+import java.awt.*;
 import java.io.Serializable;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 /**
  * This class represents a 2D map (int[w][h]) as a "screen" or a raster matrix or maze over integers.
  * This is the main class needed to be implemented.
@@ -254,6 +259,7 @@ public class Map implements Map2D, Serializable{
             }
         }
     }
+
     // Calculate absolute differences and step directions
     // Initialize error term (err = dx + dy) to manage the decision between X and Y steps
     // Loop until the current coordinates (x0, y0) match the target (x1, y1)
@@ -265,18 +271,27 @@ public class Map implements Map2D, Serializable{
     public void drawLine(Pixel2D p1, Pixel2D p2, int color) {
         int x1 = p1.getX(), y1 = p1.getY();
         int x2 = p2.getX(), y2 = p2.getY();
-        int dx = Math.abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
-        int dy = -Math.abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
+        int dx = Math.abs(x2 - x1);
+        int sx = x1 < x2 ? 1 : -1; // if x1<x2 sx=1 else sx=-1
+        int dy = -Math.abs(y2 - y1);
+        int sy = y1 < y2 ? 1 : -1; // if y1<y2 sy=1 else sy=-1
         int err = dx + dy;
-        while (true) {
+
+        while (true)
+        {
             setPixel(x1, y1, color);
-            if (x1 == x2 && y1 == y2) break; // Reached the end point
+            if (x1 == x2 && y1 == y2)
+            {
+                break; // Reached the end point
+            }
             int e2 = 2 * err;
-            if (e2 >= dy) {
+            if (e2 >= dy)
+            {
                 err += dy;
                 x1 += sx;
             }
-            if (e2 <= dx) {
+            if (e2 <= dx)
+            {
                 err += dx;
                 y1 += sy;
             }
@@ -309,15 +324,15 @@ public class Map implements Map2D, Serializable{
         boolean ans = true; // assume equal unless proven otherwise
         if(ob instanceof Map) // check if ob is from type Map
         {
-            Map m = (Map)ob; // type casting
-            if(m.w == this.w && m.h == this.h) // check dimensions of both maps
+            Map map = (Map)ob; // type casting
+            if(map.w == this.w && map.h == this.h) // check dimensions of both maps
             {
                 //check each value in both maps
                 for (int y = 0; y < this.h; y++)
                 {
                     for (int x = 0; x < this.w; x++)
                     {
-                        if (this.v[y][x] != m.v[y][x]) {
+                        if (this.v[y][x] != map.v[y][x]) {
                             return false;
                         }
                     }
@@ -334,18 +349,86 @@ public class Map implements Map2D, Serializable{
         }
         return ans;
     }
-	@Override
-	/** 
-	 * Fills this map with the new color (new_v) starting from p.
-	 * https://en.wikipedia.org/wiki/Flood_fill
-	 */
-	public int fill(Pixel2D xy, int new_v,  boolean cyclic) {
-		int ans = -1;
+    @Override
+    /**
+     * Fills this map with the new color (new_v) starting from p.
+     * Uses BFS (Breadth-First Search) algorithm with a Queue to avoid StackOverflow.
+     */
+        public int fill(Pixel2D xy, int new_v, boolean cyclic) {
+            int ans = 0;
+            // Initialize dimensions and starting coordinates
+            final int H = v.length;
+            final int W = v[0].length;
+            final int fx = xy.getX(); // starting X coordinate
+            final int fy = xy.getY(); // starting Y coordinate
 
-		return ans;
-	}
+            // Initial boundary check: Ensure the starting point is within the map
+            if (fy < 0 || fy >= v[0].length || fx < 0 || fx >= v.length) {
+                return ans;
+            }
 
-	@Override
+            // Identify the target color to be replaced
+            final int old = v[fy][fx];
+
+            // Optimization: If the target color is already the new color, no work is needed
+            if (old == new_v) {
+                return ans;
+            }
+
+            // Setup BFS structures: 'visited' array prevents infinite loops
+            // 'q' (Queue) stores pixels that are waiting to have their neighbors checked
+            final boolean[][] visited = new boolean[H][W];
+            final ArrayDeque<int[]> q = new ArrayDeque<>();
+
+            // Start the process from the initial pixel
+            visited[fy][fx] = true; // Mark starting pixel as visited
+            q.add(new int[]{fx, fy}); // Enqueue starting pixel
+
+            // Define 4-way connectivity (Right, Left, Down, Up)
+            final int[][] directions = {{ 1,  0}, {-1,  0}, { 0,  1}, { 0, -1}};
+
+            // Main BFS Loop: Continue as long as there are connected pixels to process
+            while (!q.isEmpty()) { // While there are pixels to process
+                int[] cur = q.removeFirst(); // Get the next pixel from the queue
+                int x = cur[0];
+                int y = cur[1];
+
+                // Update current pixel color and increment the counter
+                if (cells[y][x] == old) {
+                    cells[y][x] = new_v;
+                    ans++;
+                }
+
+                // 10. Check all 4 neighbors
+                for (int[] d : directions) { // For each direction (Right, Left, Down, Up)
+                    int nx = x + d[0]; // Neighbor's X coordinate
+                    int ny = y + d[1]; // Neighbor's Y coordinate
+
+                    // Handle Map Topology: Cyclic vs. Standard Bounded
+                    if (cyclic) {
+                        // Modulo math ensures that going off-edge wraps around to the opposite side
+                        // Added '+ W' handles negative results from nx % W
+                        nx = ((nx % W) + W) % W;
+                        ny = ((ny % H) + H) % H;
+                    } else {
+                        // Standard bounds check: Skip the neighbor if it's outside the map
+                        if (nx < 0 || nx >= W || ny < 0 || ny >= H)
+                            continue;
+                    }
+
+                    // If neighbor has the original color and hasn't been visited yet, add to queue
+                    if (!visited[ny][nx] && v[ny][nx] == old) {
+                        visited[ny][nx] = true; // Mark as visited immediately to avoid duplicate entries
+                        q.add(new int[]{nx, ny});
+                    }
+                }
+            }
+            // Return total number of pixels that were changed
+            return ans;
+        }
+
+
+    @Override
 	/**
 	 * BFS like shortest the computation based on iterative raster implementation of BFS, see:
 	 * https://en.wikipedia.org/wiki/Breadth-first_search
