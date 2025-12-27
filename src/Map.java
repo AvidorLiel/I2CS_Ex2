@@ -305,6 +305,7 @@ public class Map implements Map2D, Serializable{
 
     @Override
     public boolean equals(Object ob) {
+
         boolean ans = true; // assume equal unless proven otherwise
         if(ob instanceof Map) // check if ob is from type Map
         {
