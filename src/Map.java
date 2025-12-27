@@ -305,8 +305,32 @@ public class Map implements Map2D, Serializable{
 
     @Override
     public boolean equals(Object ob) {
-        boolean ans = false;
-
+        boolean ans = true; // assume equal unless proven otherwise
+        if(ob instanceof Map) // check if ob is from type Map
+        {
+            Map m = (Map)ob; // type casting
+            if(m.w == this.w && m.h == this.h) // check dimensions of both maps
+            {
+                //check each value in both maps
+                for (int y = 0; y < this.h; y++)
+                {
+                    for (int x = 0; x < this.w; x++)
+                    {
+                        if (this.v[y][x] != m.v[y][x]) {
+                            return false;
+                        }
+                    }
+                }
+            }
+            else // if dimensions are not equal
+            {
+                return  false;
+            }
+        }
+        else // if ob is not from type Map
+        {
+            return false;
+        }
         return ans;
     }
 	@Override
