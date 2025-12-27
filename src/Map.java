@@ -320,11 +320,37 @@ public class Map implements Map2D, Serializable{
     }
 
     @Override
-    public boolean equals(Object ob) {
-        boolean ans = false;
-
+    public boolean equals(Object ob)
+    {
+        boolean ans = true; // assume equal unless proven otherwise
+        if(ob instanceof Map) // check if ob is instance of Map
+        {
+            Map map = (Map)ob;
+            if(map.w == this.w && map.h == this.h) // check dimensions
+            {
+                for (int y = 0; y < this.h; y++)
+                {
+                    for (int x = 0; x < this.w; x++)
+                    {
+                        if (this.v[y][x] != map.v[y][x]) // compare each pixel value
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                return  false;
+            }
+        }
+        else
+        {
+            return false;
+        }
         return ans;
     }
+
     @Override
     /**
      * Fills this map with the new color (new_v) starting from p.
@@ -378,10 +404,10 @@ public class Map implements Map2D, Serializable{
                 }
 
                 // Check all 4 neighbors
-                for (int[] d : directions)
+                for (int[] d : directions) // For each direction
                 {
-                    int nx = x + d[0];
-                    int ny = y + d[1];
+                    int nx = x + d[0]; // Neighbor's x coordinate
+                    int ny = y + d[1]; // Neighbor's y coordinate
 
                     // Handle Map Topology: Cyclic vs. Standard Bounded
                     if (cyclic)
@@ -414,11 +440,127 @@ public class Map implements Map2D, Serializable{
 	 * BFS like shortest the computation based on iterative raster implementation of BFS, see:
 	 * https://en.wikipedia.org/wiki/Breadth-first_search
 	 */
-	public Pixel2D[] shortestPath(Pixel2D p1, Pixel2D p2, int obsColor, boolean cyclic) {
-		Pixel2D[] ans = null;  // the result.
+    @Override
+/**
+ * BFS like shortest path computation based on iterative raster implementation.
+ * Finds the minimum number of steps between p1 and p2, avoiding obstacles.
+ */
+    public Pixel2D[] shortestPath(Pixel2D p1, Pixel2D p2, int obsColor, boolean cyclic) {
+        Pixel2D[] ans = null; // Result array
 
-		return ans;
-	}
+        // Basic validation: Ensure start and end points exist
+        if (p1 == null || p2 == null)
+        {
+            return null;
+        }
+
+        final int H = cells.length;
+        final int W = cells[0].length;
+        final int sx = p1.getX();
+        final int sy = p1.getY();
+        final int ex = p2.getX();
+        final int ey = p2.getY();
+
+        // Boundary checks: Ensure coordinates are within the map dimensions
+        if (sx < 0 || sx >= W || sy < 0 || sy >= H)
+        {
+            return null;
+        }
+        if (ex < 0 || ex >= W || ey < 0 || ey >= H)
+        {
+            return null;
+        }
+
+        // Obstacle check: Path is impossible if start or end is an obstacle
+        if (cells[sy][sx] == obsColor || cells[ey][ex] == obsColor) return null;
+
+        // Edge case: Start and end are the same point
+        if (sx == ex && sy == ey) return new Pixel2D[]{p1};
+
+        // Setup BFS Data Structures:
+        // 'visited' prevents re-processing cells (infinite loops)
+        // 'parentX/Y' store the coordinates of the previous cell to reconstruct the path later
+        final boolean[][] visited = new boolean[H][W];
+        final int[][] parentX = new int[H][W];
+        final int[][] parentY = new int[H][W];
+
+        // Initialize parents with -1 (meaning "no parent yet")
+        for (int y = 0; y < H; y++) {
+            java.util.Arrays.fill(parentX[y], -1);
+            java.util.Arrays.fill(parentY[y], -1);
+        }
+
+        // 6. Define 8-way movement (Horizontal, Vertical, and Diagonal)
+        final int[][] directions = {{ 1,  0}, {-1,  0}, { 0,  1}, { 0, -1}, { 1,  1}, { 1, -1}, {-1,  1}, {-1, -1}};
+
+        // 7. Queue for BFS: First-In-First-Out (FIFO) ensures shortest path in an unweighted grid
+        final java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
+        visited[sy][sx] = true;
+        q.addLast(new int[]{sx, sy});
+
+        boolean found = false;
+
+        // 8. Main BFS Loop: Expand outward from start point
+        while (!q.isEmpty()) {
+            int[] cur = q.removeFirst();
+            int x = cur[0], y = cur[1];
+
+            // 9. Goal reached: Stop searching and start path reconstruction
+            if (x == ex && y == ey) {
+                found = true;
+                break;
+            }
+
+            // 10. Explore all 8 neighboring directions
+            for (int[] d : directions) {
+                int nx = x + d[0];
+                int ny = y + d[1];
+
+                // 11. Coordinate Wrapping (Cyclic): If off-edge, wrap to the opposite side
+                if (cyclic) {
+                    nx = (nx % W + W) % W;
+                    ny = (ny % H + H) % H;
+                } else {
+                    // Standard bounds check for non-cyclic maps
+                    if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+                }
+
+                // 12. Valid movement check: Not visited and not an obstacle
+                if (!visited[ny][nx] && cells[ny][nx] != obsColor) {
+                    visited[ny][nx] = true;
+                    // Save 'current' as the 'parent' of 'neighbor' to remember the path
+                    parentX[ny][nx] = x;
+                    parentY[ny][nx] = y;
+                    q.addLast(new int[]{nx, ny});
+                }
+            }
+        }
+
+        // 13. Path Reconstruction: If target was found, trace back using the parent arrays
+        if (!found) return null;
+
+        java.util.ArrayList<Pixel2D> path = new java.util.ArrayList<>();
+        int cx = ex, cy = ey; // Start tracing from the end point
+
+        while (true) {
+            path.add(new Index2D(cx, cy)); // Add current point to path
+            if (cx == sx && cy == sy) break; // Reached the starting point
+
+            // Move to the parent of the current cell
+            int px = parentX[cy][cx];
+            int py = parentY[cy][cx];
+
+            if (px == -1 && py == -1) return null; // Safety check
+            cx = px;
+            cy = py;
+        }
+
+        // 14. Finalize result: Reverse the list (End->Start to Start->End) and convert to array
+        java.util.Collections.reverse(path);
+        ans = path.toArray(new Pixel2D[0]);
+
+        return ans;
+    }
     @Override
     public Map2D allDistance(Pixel2D start, int obsColor, boolean cyclic) {
         Map2D ans = null;  // the result.
