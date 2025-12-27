@@ -691,11 +691,14 @@ public class Map implements Map2D, Serializable{
         return ans; // Return the distance map
     }
 	////////////////////// Private Methods /////////////////////////
-    private boolean inBounds(int x, int y) {
-        return x >= 0 && x < w && y >= 0 && y < h;
+    private boolean inBounds(int x, int y) // check if (x,y) is within bounds
+    {
+        return (x >= 0 && x < w && y >= 0 && y < h);
     }
-    private void checkBounds(int x, int y) {
-        if (!inBounds(x, y)) {
+    private void checkBounds(int x, int y) // throw exception if (x,y) is out of bounds
+    {
+        if (!inBounds(x, y))
+        {
             throw new IndexOutOfBoundsException("Out of bounds: (" + x + "," + y + ") for " + w + "x" + h);
         }
     }
