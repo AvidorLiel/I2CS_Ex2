@@ -690,7 +690,7 @@ public class Map implements Map2D, Serializable{
         ans = new Map(distance);
         return ans; // Return the distance map
     }
-	////////////////////// Private Methods ///////////////////////
+	////////////////////// Private Methods /////////////////////////
     private boolean inBounds(int x, int y) {
         return x >= 0 && x < w && y >= 0 && y < h;
     }
