@@ -435,16 +435,13 @@ public class Map implements Map2D, Serializable{
             return ans;
         }
 
-	@Override
-	/**
-	 * BFS like shortest the computation based on iterative raster implementation of BFS, see:
-	 * https://en.wikipedia.org/wiki/Breadth-first_search
-	 */
+
     @Override
-/**
- * BFS like shortest path computation based on iterative raster implementation.
- * Finds the minimum number of steps between p1 and p2, avoiding obstacles.
- */
+    /**
+     * BFS like shortest path computation based on iterative raster implementation.
+     * Finds the minimum number of steps between p1 and p2, avoiding obstacles.
+     * * https://en.wikipedia.org/wiki/Breadth-first_search
+     */
     public Pixel2D[] shortestPath(Pixel2D p1, Pixel2D p2, int obsColor, boolean cyclic) {
         Pixel2D[] ans = null; // Result array
 
@@ -454,12 +451,12 @@ public class Map implements Map2D, Serializable{
             return null;
         }
 
-        final int H = cells.length;
-        final int W = cells[0].length;
-        final int sx = p1.getX();
-        final int sy = p1.getY();
-        final int ex = p2.getX();
-        final int ey = p2.getY();
+        final int H = v.length;
+        final int W = v[0].length;
+        final int sx = p1.getX(); // start x coordinate
+        final int sy = p1.getY(); // start y coordinate
+        final int ex = p2.getX(); // end x coordinate
+        final int ey = p2.getY(); // end y coordinate
 
         // Boundary checks: Ensure coordinates are within the map dimensions
         if (sx < 0 || sx >= W || sy < 0 || sy >= H)
@@ -472,10 +469,16 @@ public class Map implements Map2D, Serializable{
         }
 
         // Obstacle check: Path is impossible if start or end is an obstacle
-        if (cells[sy][sx] == obsColor || cells[ey][ex] == obsColor) return null;
+        if (v[sy][sx] == obsColor || v[ey][ex] == obsColor)
+        {
+            return null;
+        }
 
         // Edge case: Start and end are the same point
-        if (sx == ex && sy == ey) return new Pixel2D[]{p1};
+        if (sx == ex && sy == ey)
+        {
+            return new Pixel2D[]{p1}; // Return array with single point
+        }
 
         // Setup BFS Data Structures:
         // 'visited' prevents re-processing cells (infinite loops)
@@ -486,8 +489,8 @@ public class Map implements Map2D, Serializable{
 
         // Initialize parents with -1 (meaning "no parent yet")
         for (int y = 0; y < H; y++) {
-            java.util.Arrays.fill(parentX[y], -1);
-            java.util.Arrays.fill(parentY[y], -1);
+            java.util.Arrays.fill(parentX[y], -1); // No parent initialized
+            java.util.Arrays.fill(parentY[y], -1); // No parent initialized
         }
 
         // Define 8-way movement (Horizontal, Vertical, and Diagonal)
@@ -498,11 +501,11 @@ public class Map implements Map2D, Serializable{
         visited[sy][sx] = true;
         q.addLast(new int[]{sx, sy});
 
-        boolean found = false;
+        boolean found = false; // Flag to indicate if the end point was reached
 
         // Main BFS Loop: Expand outward from start point
-        while (!q.isEmpty()) {
-            int[] cur = q.removeFirst();
+        while (!q.isEmpty()) { // While there are cells to process
+            int[] cur = q.removeFirst(); // Get the next cell from the queue
             int x = cur[0], y = cur[1];
 
             // Goal reached: Stop searching and start path reconstruction
@@ -512,26 +515,31 @@ public class Map implements Map2D, Serializable{
             }
 
             // Explore all 8 neighboring directions
-            for (int[] d : directions) {
+            for (int[] d : directions) // For each direction: horizontal, vertical, diagonal
+            {
                 int nx = x + d[0];
                 int ny = y + d[1];
 
                 // Coordinate Wrapping (Cyclic): If off-edge, wrap to the opposite side
                 if (cyclic) {
-                    nx = (nx % W + W) % W;
-                    ny = (ny % H + H) % H;
+                    nx = (nx % W + W) % W; // Handle negative results from modulo and wrap around
+                    ny = (ny % H + H) % H; // Handle negative results from modulo and wrap around
                 } else {
                     // Standard bounds check for non-cyclic maps
-                    if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+                    if (nx < 0 || nx >= W || ny < 0 || ny >= H)
+                    {
+                        continue;
+                    }
                 }
 
                 // Valid movement check: Not visited and not an obstacle
-                if (!visited[ny][nx] && cells[ny][nx] != obsColor) {
+                if (!visited[ny][nx] && v[ny][nx] != obsColor)
+                {
                     visited[ny][nx] = true;
                     // Save 'current' as the 'parent' of 'neighbor' to remember the path
                     parentX[ny][nx] = x;
                     parentY[ny][nx] = y;
-                    q.addLast(new int[]{nx, ny});
+                    q.addLast(new int[]{nx, ny}); // Add neighbor to the queue for further exploration
                 }
             }
         }
@@ -539,33 +547,148 @@ public class Map implements Map2D, Serializable{
         // Path Reconstruction: If target was found, trace back using the parent arrays
         if (!found) return null;
 
-        java.util.ArrayList<Pixel2D> path = new java.util.ArrayList<>();
+        java.util.ArrayList<Pixel2D> path = new java.util.ArrayList<>(); // To store the path from start to end
         int cx = ex, cy = ey; // Start tracing from the end point
 
-        while (true) {
+        while (true) // Loop until we reach the start point
+        {
             path.add(new Index2D(cx, cy)); // Add current point to path
-            if (cx == sx && cy == sy) break; // Reached the starting point
+            if (cx == sx && cy == sy) // Reached the starting point
+            {
+                break;
+            }
 
             // Move to the parent of the current cell
             int px = parentX[cy][cx];
             int py = parentY[cy][cx];
 
-            if (px == -1 && py == -1) return null; // Safety check
-            cx = px;
-            cy = py;
+            if (px == -1 && py == -1) // No parent found (should not happen if 'found' is true)
+            {
+                return null; // Safety check
+            }
+            cx = px; // Update current x to parent x
+            cy = py; // Update current y to parent y
         }
 
         // Finalize result: Reverse the list (End->Start to Start->End) and convert to array
         java.util.Collections.reverse(path);
-        ans = path.toArray(new Pixel2D[0]);
+        ans = path.toArray(new Pixel2D[0]); // Convert list to array
 
         return ans;
     }
     @Override
+/**
+ * Calculates the shortest distance from a start pixel to all other reachable pixels.
+ * Returns a Map2D where each pixel value represents its distance from the start.
+ */
     public Map2D allDistance(Pixel2D start, int obsColor, boolean cyclic) {
-        Map2D ans = null;  // the result.
+        Map2D ans = null;  // Final result object
+        final int H = v.length;
+        final int W = v[0].length;
+        final int sx = start.getX(); // Starting X coordinate
+        final int sy = start.getY(); // Starting Y coordinate
 
-        return ans;
+        // Initialize distance matrix with -1 (representing unreachable areas)
+        int[][] distance = new int[H][W];
+        for (int y = 0; y < H; y++)
+        {
+            java.util.Arrays.fill(distance[y], -1); // Mark all as unreachable initially
+        }
+
+        // Initial boundary check: If start is out of bounds, return the empty distance map
+        if (sx < 0 || sx >= W || sy < 0 || sy >= H)
+        {
+            return new Map(distance);
+        }
+
+        // Pre-marking obstacles: Copy obstacle positions to the distance map for visibility
+        // Also handles the case where the starting point itself is an obstacle
+        if (v[sy][sx] == obsColor) { // If start is an obstacle, return map with only obstacles marked
+            for (int y = 0; y < H; y++)
+            {
+                for (int x = 0; x < W; x++)
+                {
+                    if (v[y][x] == obsColor)
+                    {
+                        distance[y][x] = obsColor; // Mark obstacles
+                    }
+                }
+            }
+            return new Map(distance); // Return the distance map with obstacles marked
+        }
+
+        // Fill the distance map with obstacle markers before starting the search
+        for (int y = 0; y < H; y++)
+        {
+            for (int x = 0; x < W; x++)
+            {
+                if (v[y][x] == obsColor) // If the pixel is an obstacle
+                {
+                    distance[y][x] = obsColor; // Mark it in the distance map
+                }
+            }
+        }
+
+        // BFS Setup: Use a queue to explore pixels layer by layer (by distance)
+        final boolean[][] visited = new boolean[H][W];
+        final ArrayDeque<int[]> q = new ArrayDeque<>();
+        final int[][] directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}; // 4-way movement
+
+        // Initialize the starting point
+        visited[sy][sx] = true;
+        distance[sy][sx] = 0; // Distance to self is 0
+        q.add(new int[]{sx, sy});
+
+        // Main BFS Loop
+        while (!q.isEmpty())
+        {
+            int[] cur = q.removeFirst(); // Get the next pixel to process
+            int x = cur[0], y = cur[1];
+
+            // Check all 4 neighbors (Up, Down, Left, Right)
+            for (int[] d : directions)
+            {
+                int nx = x + d[0], ny = y + d[1];
+
+                // Handle Cyclic Topology: Wrap around edges if cyclic is true
+                if (cyclic)
+                {
+                    // Modulo math to ensure coordinates stay within [0, W-1] and [0, H-1]
+                    nx = ((nx % W) + W) % W;
+                    ny = ((ny % H) + H) % H;
+                }
+                else
+                {
+                    // Standard bounds check: Skip if neighbor is outside the map
+                    if (nx < 0 || nx >= W || ny < 0 || ny >= H)
+                    {
+                        continue;
+                    }
+                }
+
+                // Skip if the pixel was already visited or is an obstacle
+                if (visited[ny][nx])
+                {
+                    continue;
+                }
+                if (v[ny][nx] == obsColor)
+                {
+                    continue;
+                }
+
+                // Mark as visited and calculate distance
+                visited[ny][nx] = true;
+                // The distance to the neighbor is the current pixel's distance + 1 step
+                distance[ny][nx] = distance[y][x] + 1;
+
+                // Add neighbor to the queue to process its neighbors in the next layer
+                q.add(new int[]{nx, ny});
+            }
+        }
+
+        // Wrap the resulting distance matrix in a Map object and return
+        ans = new Map(distance);
+        return ans; // Return the distance map
     }
 	////////////////////// Private Methods ///////////////////////
     private boolean inBounds(int x, int y) {
