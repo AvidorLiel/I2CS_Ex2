@@ -254,15 +254,53 @@ public class Map implements Map2D, Serializable{
             }
         }
     }
-
+    // Calculate absolute differences and step directions
+    // Initialize error term (err = dx + dy) to manage the decision between X and Y steps
+    // Loop until the current coordinates (x0, y0) match the target (x1, y1)
+    // In each step:
+    //    - If 2*err >= dy, move in the X direction
+    //    - If 2*err <= dx, move in the Y direction
+    //    - This ensures the line stays as close as possible to the ideal mathematical path
     @Override
     public void drawLine(Pixel2D p1, Pixel2D p2, int color) {
-
+        int x1 = p1.getX(), y1 = p1.getY();
+        int x2 = p2.getX(), y2 = p2.getY();
+        int dx = Math.abs(x2 - x1), sx = x1 < x2 ? 1 : -1;
+        int dy = -Math.abs(y2 - y1), sy = y1 < y2 ? 1 : -1;
+        int err = dx + dy;
+        while (true) {
+            setPixel(x1, y1, color);
+            if (x1 == x2 && y1 == y2) break; // Reached the end point
+            int e2 = 2 * err;
+            if (e2 >= dy) {
+                err += dy;
+                x1 += sx;
+            }
+            if (e2 <= dx) {
+                err += dx;
+                y1 += sy;
+            }
+        }
     }
 
     @Override
     public void drawRect(Pixel2D p1, Pixel2D p2, int color) {
-
+        if (p1 == p2) { // If both points are the same, draw a single pixel
+            setPixel(p1.getX(), p1.getY(), color);
+        } else {
+            int x1 = Math.min(p1.getX(), p2.getX()); // Left x boundary of both points
+            int y1 = Math.min(p1.getY(), p2.getY()); // Top y boundary of both points
+            int x2 = Math.max(p1.getX(), p2.getX()); // Right x boundary of both points
+            int y2 = Math.max(p1.getY(), p2.getY()); // Bottom y boundary of both points
+            for (int x = x1; x <= x2; x++) { // Draw top and bottom edges
+                setPixel(x, y1, color);
+                setPixel(x, y2, color);
+            }
+            for (int y = y1; y <= y2; y++) { // Draw left and right edges
+                setPixel(x1, y, color);
+                setPixel(x2, y, color);
+            }
+        }
     }
 
     @Override
