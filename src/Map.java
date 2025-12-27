@@ -490,33 +490,33 @@ public class Map implements Map2D, Serializable{
             java.util.Arrays.fill(parentY[y], -1);
         }
 
-        // 6. Define 8-way movement (Horizontal, Vertical, and Diagonal)
+        // Define 8-way movement (Horizontal, Vertical, and Diagonal)
         final int[][] directions = {{ 1,  0}, {-1,  0}, { 0,  1}, { 0, -1}, { 1,  1}, { 1, -1}, {-1,  1}, {-1, -1}};
 
-        // 7. Queue for BFS: First-In-First-Out (FIFO) ensures shortest path in an unweighted grid
+        // Queue for BFS: First-In-First-Out (FIFO) ensures shortest path in an unweighted grid
         final java.util.ArrayDeque<int[]> q = new java.util.ArrayDeque<>();
         visited[sy][sx] = true;
         q.addLast(new int[]{sx, sy});
 
         boolean found = false;
 
-        // 8. Main BFS Loop: Expand outward from start point
+        // Main BFS Loop: Expand outward from start point
         while (!q.isEmpty()) {
             int[] cur = q.removeFirst();
             int x = cur[0], y = cur[1];
 
-            // 9. Goal reached: Stop searching and start path reconstruction
+            // Goal reached: Stop searching and start path reconstruction
             if (x == ex && y == ey) {
                 found = true;
                 break;
             }
 
-            // 10. Explore all 8 neighboring directions
+            // Explore all 8 neighboring directions
             for (int[] d : directions) {
                 int nx = x + d[0];
                 int ny = y + d[1];
 
-                // 11. Coordinate Wrapping (Cyclic): If off-edge, wrap to the opposite side
+                // Coordinate Wrapping (Cyclic): If off-edge, wrap to the opposite side
                 if (cyclic) {
                     nx = (nx % W + W) % W;
                     ny = (ny % H + H) % H;
@@ -525,7 +525,7 @@ public class Map implements Map2D, Serializable{
                     if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
                 }
 
-                // 12. Valid movement check: Not visited and not an obstacle
+                // Valid movement check: Not visited and not an obstacle
                 if (!visited[ny][nx] && cells[ny][nx] != obsColor) {
                     visited[ny][nx] = true;
                     // Save 'current' as the 'parent' of 'neighbor' to remember the path
@@ -536,7 +536,7 @@ public class Map implements Map2D, Serializable{
             }
         }
 
-        // 13. Path Reconstruction: If target was found, trace back using the parent arrays
+        // Path Reconstruction: If target was found, trace back using the parent arrays
         if (!found) return null;
 
         java.util.ArrayList<Pixel2D> path = new java.util.ArrayList<>();
@@ -555,7 +555,7 @@ public class Map implements Map2D, Serializable{
             cy = py;
         }
 
-        // 14. Finalize result: Reverse the list (End->Start to Start->End) and convert to array
+        // Finalize result: Reverse the list (End->Start to Start->End) and convert to array
         java.util.Collections.reverse(path);
         ans = path.toArray(new Pixel2D[0]);
 
