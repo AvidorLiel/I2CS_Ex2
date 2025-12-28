@@ -45,7 +45,7 @@ class MapTest {
     }
 
     @Test
-    void equals_SameSize_SameData() {
+    void equalsSameSizeSameData() {
         // Changed from 3x3 to 4x4 with a different color pattern
         int[][] grid = {
                 {12, 11, 12, 11},
@@ -60,7 +60,7 @@ class MapTest {
     }
 
     @Test
-    void equals_SameSize_DifferentData() {
+    void equalsSameSizeDifferentData() {
         // Using 3x3 maps with a single pixel difference
         int[][] g1 = {
                 {5, 5, 5},
@@ -79,7 +79,7 @@ class MapTest {
     }
 
     @Test
-    void equals_DifferentSize() {
+    void equalsDifferentSize() {
         // Changed dimensions from 3x3/4x3 to 10x5 and 10x6
         Map a = new Map(10, 5, 7);
         Map b = new Map(10, 6, 7);
@@ -87,7 +87,7 @@ class MapTest {
     }
 
     @Test
-    void equals_noNulls() {
+    void equalsnoNulls() {
         // Changed map size to 5x5 and default color to 12
         Map a = new Map(5, 5, 12);
         assertFalse(a.equals(null), "equals(null) must be false");
@@ -95,7 +95,7 @@ class MapTest {
     }
 
     @Test
-    void shortestPath_basic() {
+    void shortestPathbasic() {
         // Increased map size to 10x10
         Map m = new Map(10, 10, 11); // White background
         Pixel2D s = new Index2D(1, 1);
@@ -112,7 +112,7 @@ class MapTest {
     }
 
     @Test
-    void shortestPath_ChecksObstacles() {
+    void shortestPathChecksObstacles() {
         // Creating a horizontal wall that blocks the path
         Map m = new Map(5, 5, 11);
         int obstacleColor = 0; // Black
@@ -131,7 +131,7 @@ class MapTest {
     }
 
     @Test
-    void allDistance_NullTest() {
+    void allDistanceNullTest() {
         // Testing distances on a 4x4 map from a corner
         Map m = new Map(4, 4, 11);
         int obsColor = 2; // Cyan
